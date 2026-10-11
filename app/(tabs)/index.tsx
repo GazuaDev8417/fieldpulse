@@ -65,18 +65,18 @@ export default function InspectionFeedScreen(){
                 ) : null}
 
                 <View style={styles.cardFooter}>
-                <Text style={styles.cardDate}>
-                    {new Date(item.createdAt).toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                    })}
-                </Text>
-                {item.latitude && item.longitude ? (
-                    <Text style={styles.cardCoordinates}>
-                    GPS: {item.latitude.toFixed(3)}, {item.longitude.toFixed(3)}
-                    </Text>
-                ) : null}
+                  <Text style={styles.cardDate}>
+                      {new Date(item.createdAt).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                      })}
+                  </Text>
+                  {item.latitude && item.longitude ? (
+                      <Text style={styles.cardCoordinates}>
+                      GPS: {item.latitude.toFixed(3)}, {item.longitude.toFixed(3)}
+                      </Text>
+                  ) : null}
                 </View>
             </Card>
         </TouchableOpacity>
@@ -94,7 +94,7 @@ export default function InspectionFeedScreen(){
                     onPress={() => router.push('/inspection/new' as Href)}
                     activeOpacity={0.8}
                 >
-                <Plus size={24} color="#FFFFFF" />
+                  <Plus size={24} color="#FFFFFF" />
                 </TouchableOpacity>
             </View>
 
@@ -104,21 +104,21 @@ export default function InspectionFeedScreen(){
                 </View>
             ) : (
                 <FlatList
-                data={inspections}
-                keyExtractor={(item) => item.id}
-                renderItem={renderInspectionItem}
-                contentContainerStyle={styles.listContent}
-                refreshControl={
-                    <RefreshControl refreshing={isLoading} onRefresh={refetch} />
-                }
-                ListEmptyComponent={
-                    <View style={styles.emptyContainer}>
-                    <Text style={styles.emptyTitle}>No inspections found</Text>
-                    <Text style={styles.emptySubtitle}>
-                        Tap the + button to create your first field inspection.
-                    </Text>
-                    </View>
-                }
+                  data={inspections}
+                  keyExtractor={(item) => item.id}
+                  renderItem={renderInspectionItem}
+                  contentContainerStyle={styles.listContent}
+                  refreshControl={
+                      <RefreshControl refreshing={isLoading} onRefresh={refetch} />
+                  }
+                  ListEmptyComponent={
+                      <View style={styles.emptyContainer}>
+                      <Text style={styles.emptyTitle}>No inspections found</Text>
+                      <Text style={styles.emptySubtitle}>
+                          Tap the + button to create your first field inspection.
+                      </Text>
+                      </View>
+                  }
                 />
             )}
         </View>
