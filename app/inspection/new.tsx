@@ -18,6 +18,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { z } from 'zod';
 
 
@@ -31,6 +32,7 @@ type InspectionFormData = z.infer<typeof inspectionSchema>;
 
 export default function NewInspectionScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets()
   const { createInspection, isCreating } = useInspections();
 
   const [permission, requestPermission] = useCameraPermissions();
@@ -147,7 +149,10 @@ export default function NewInspectionScreen() {
         <View style={{ width: 24 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={[
+        styles.content,
+        { paddingBottom: insets.bottom + 24 }
+      ]}>
         <Card style={styles.formCard}>
           <Controller
             control={control}

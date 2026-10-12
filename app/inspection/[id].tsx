@@ -17,6 +17,8 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Linking,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -32,6 +34,8 @@ export default function InspectionDetailScreen() {
   const { inspection, isLoading } = useInspectionDetail(id as string);
   const { deleteInspection } = useInspections();
 
+  
+  
   const handleDelete = () => {
     Alert.alert(
       'Delete Inspection',
@@ -51,6 +55,22 @@ export default function InspectionDetailScreen() {
       ]
     );
   };
+
+
+  const handleLocation = async()=>{
+    if(inspection?.latitude == null || inspection?.longitude == null) return
+
+    const url = 
+      `https://www.google.com/maps/search/?api=1&query=` +
+      `${inspection.latitude},${inspection.longitude}`
+
+    try{
+      await Linking.openURL(url)
+    }catch{
+      Alert.alert('Map Error', 'Could not open the inspection location.')
+    }
+  }
+
 
   if (isLoading) {
     return (
@@ -133,19 +153,25 @@ export default function InspectionDetailScreen() {
         </Card>
 
         {/* Location Section */}
-        {inspection.latitude && inspection.longitude ? (
-          <Card style={styles.sectionCard}>
-            <View style={styles.cardHeader}>
-              <MapPin size={20} color="#2563EB" />
-              <Text style={styles.sectionTitle}>Geolocation Meta</Text>
-            </View>
-            <Text style={styles.coordinateText}>
-              Latitude: {inspection.latitude}
-            </Text>
-            <Text style={styles.coordinateText}>
-              Longitude: {inspection.longitude}
-            </Text>
-          </Card>
+        {inspection.latitude != null && inspection.longitude != null ? (
+          <Pressable
+            onPress={handleLocation}
+            accessibilityRole='button'
+            accessibilityLabel='Open inspection location map'
+            >
+            <Card style={styles.sectionCard}>
+              <View style={styles.cardHeader}>
+                <MapPin size={20} color="#2563EB" />
+                <Text style={styles.sectionTitle}>Geolocation Meta</Text>
+              </View>
+              <Text style={styles.coordinateText}>
+                Latitude: {inspection.latitude}
+              </Text>
+              <Text style={styles.coordinateText}>
+                Longitude: {inspection.longitude}
+              </Text>
+            </Card>
+          </Pressable>
         ) : null}
 
         {/* Photo Evidence Section */}
