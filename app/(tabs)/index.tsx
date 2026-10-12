@@ -32,7 +32,7 @@ export default function InspectionFeedScreen(){
                 return(
                     <View style={[styles.badge, styles.badgePending]}>
                         <Clock size={12} color="#854D0E" />
-                        <Text style={[styles.badgeText, styles.badgeTextPending]}>Pending Sync</Text>
+                        <Text style={[styles.badgeText, styles.badgeTextPending]}>Saved locally</Text>
                     </View>
                 )
             default:

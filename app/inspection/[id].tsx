@@ -126,7 +126,7 @@ export default function InspectionDetailScreen() {
             {inspection.status === 'pending_sync' && (
               <View style={[styles.badge, styles.badgePending]}>
                 <Clock size={12} color="#854D0E" />
-                <Text style={[styles.badgeText, styles.badgeTextPending]}>Pending Sync</Text>
+                <Text style={[styles.badgeText, styles.badgeTextPending]}>Saved Locally</Text>
               </View>
             )}
             {inspection.status === 'draft' && (
