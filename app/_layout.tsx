@@ -1,8 +1,11 @@
+import { authService } from '@/src/features/auth/authService'
+import { clearTokens, getAccessToken } from '@/src/features/auth/authStorage'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { Stack } from 'expo-router'
+import { router, Stack } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ActivityIndicator, View } from 'react-native'
 import { initDatabase } from '../src/database/client'
+
 
 
 const queryClient = new QueryClient()
@@ -16,8 +19,20 @@ export default function RootLayout() {
     async function prepare() {
       try{
         await initDatabase()
+
+        const accessToken = await getAccessToken()
+
+        if(!accessToken){
+          router.replace('/login')
+          return
+        }
+
+        await authService.getMe()
+        router.replace('/(tabs)')
       }catch(e){
-        console.error('Error initializing database:', e)
+        await clearTokens()
+        router.replace('/login')
+        console.error('Session initialization failed:', e)
       }finally{
         setIsReady(true)
       }

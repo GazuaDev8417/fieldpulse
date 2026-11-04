@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { inspectionService } from "../services/insperctionService";
+import { inspectionService } from "../services/inspectionService";
 import { INSPECTIONS_QUERY_KEY } from "./useInspections";
 
 

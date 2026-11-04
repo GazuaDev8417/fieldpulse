@@ -8,10 +8,12 @@ export const db = drizzle(expoDb, { schema })
 
 
 export async function initDatabase() {
+  
   await expoDb.execAsync(`
     PRAGMA journal_mode = WAL;
     CREATE TABLE IF NOT EXISTS inspections (
       id TEXT PRIMARY KEY NOT NULL,
+      remote_id TEXT,
       title TEXT NOT NULL,
       description TEXT,
       status TEXT NOT NULL DEFAULT 'draft',
@@ -33,4 +35,16 @@ export async function initDatabase() {
       created_at INTEGER NOT NULL
     );
   `);
+
+  const columns = await expoDb.getAllAsync<{ name:string }>(
+    'PRAGMA table_info(inspections)'
+  )
+
+  const hasRemoteId = columns.some((column) => column.name === 'remote_id')
+
+  if(!hasRemoteId){
+    await expoDb.execAsync(
+      'ALTER TABLE inspections ADD COLUMN remote_id TEXT;'
+    )
+  }
 }

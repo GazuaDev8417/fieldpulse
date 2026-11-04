@@ -1,6 +1,6 @@
 import { Inspection, NewInspection } from '@/src/database/schema'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { inspectionService } from '../services/insperctionService'
+import { inspectionService } from '../services/inspectionService'
 
 
 export const INSPECTIONS_QUERY_KEY = ['inspections']
@@ -9,7 +9,7 @@ export function useInspections(){
     const queryClient = useQueryClient()
     const inspectionsQuery = useQuery({
         queryKey: INSPECTIONS_QUERY_KEY,
-        queryFn: () => inspectionService.getAll()
+        queryFn: () => inspectionService.syncFromRemote()
     })
 
     const createMutation = useMutation({

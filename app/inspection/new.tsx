@@ -2,6 +2,8 @@ import { Button } from '@/src/components/ui/Button';
 import { Card } from '@/src/components/ui/Card';
 import { Input } from '@/src/components/ui/Input';
 import { useInspections } from '@/src/features/inspections/hooks/useInspections';
+import { createRemoteInspection } from '@/src/features/inspections/services/inspectionService';
+import { apiClient } from '@/src/services/apiClient';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Location from 'expo-location';
@@ -33,7 +35,7 @@ type InspectionFormData = z.infer<typeof inspectionSchema>;
 export default function NewInspectionScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets()
-  const { createInspection, isCreating } = useInspections();
+  const { createInspection, updateInspection, isCreating } = useInspections();
 
   const [permission, requestPermission] = useCameraPermissions();
   const [showCamera, setShowCamera] = useState(false);
@@ -103,6 +105,43 @@ export default function NewInspectionScreen() {
         photoUri: photoUri ?? null,
         signatureUri: null,
       });
+
+      try{
+        const remoteInspection = await createRemoteInspection({
+          title: data.title,
+          description: data.description ?? null,
+          latitude: location?.latitude ?? null,
+          longitude: location?.longitude ?? null
+        })
+
+        if(photoUri){
+          const formData = new FormData()
+
+          formData.append('photo', {
+            uri: photoUri,
+            name: 'inspection-photo.jpg',
+            type: 'image/jpeg'
+          } as unknown as Blob)
+
+          await apiClient.upload(
+            `/inspections/${remoteInspection.id}/photo`,
+            formData
+          )
+        }
+
+        await updateInspection({
+          id: newId,
+          data: {
+            status: 'synced',
+            remoteId: remoteInspection.id
+          }
+        })
+      }catch(e){
+        console.error(
+          'Remote inspection creation failed',
+          e instanceof Error ? e.message : e
+        )
+      }
 
       router.back();
     } catch (error) {

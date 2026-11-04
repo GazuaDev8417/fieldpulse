@@ -3,6 +3,7 @@ import { integer, real, sqliteTable, text } from 'drizzle-orm/sqlite-core'
 
 export const inspections = sqliteTable('inspections', {
     id: text('id').primaryKey(),
+    remoteId: text('remote_id'),
     title: text('title').notNull(),
     description: text('description'),
     status: text('status', { enum: ['draft', 'pending_sync', 'synced'] }).default('draft').notNull(),
