@@ -1,11 +1,11 @@
 import React from 'react';
 import {
-    StyleSheet,
-    Text,
-    TextInput,
-    TextInputProps,
-    TextStyle,
-    View,
+  StyleSheet,
+  Text,
+  TextInput,
+  TextInputProps,
+  TextStyle,
+  View,
 } from 'react-native';
 
 

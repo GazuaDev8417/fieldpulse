@@ -25,6 +25,13 @@ export default function LoginScreen(){
     const handleLogin = async()=>{
         setIsLoading(true)
 
+        if(!email.trim() || !password.trim()){
+          alert('Fill in the email and password fields')
+          setIsLoading(false)
+          
+          return
+        }
+
         try{
             await  authService.login(email, password)
             router.replace('/(tabs)')
