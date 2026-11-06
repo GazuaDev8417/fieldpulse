@@ -1,6 +1,6 @@
 import { db } from '@/src/database/client'
 import { Inspection, inspections, NewInspection, syncQueue } from '@/src/database/schema'
-import { apiClient } from '@/src/services/apiClient'
+import { apiClient, getApiAssetUrl } from '@/src/services/apiClient'
 import { desc, eq } from 'drizzle-orm'
 
 
@@ -102,16 +102,18 @@ export const inspectionService = {
         const localInspection = await this.getById(id)
 
         if(localInspection?.remoteId){
-            await apiClient.delete(
-                `/inspections/${localInspection.remoteId}`,
-                true
-            )
+            try{
+                await apiClient.delete(
+                    `/inspections/${localInspection.remoteId}`,
+                    true
+                )
+            }catch(error){
+                throw error
+            }
         }
 
-        await db.delete(inspections).where(eq(inspections.id, id))
-        
         await db.insert(syncQueue).values({
-            id: `sync_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+            id: `sync_${Date.now()}_${Math.random()}`,
             entityType: 'inspection',
             entityId: id,
             action: 'delete',
@@ -122,90 +124,86 @@ export const inspectionService = {
             attempts: 0,
             createdAt: new Date(),
         })
+
+        await db.delete(inspections).where(eq(inspections.id, id))
     },
 
     async syncFromRemote(): Promise<Inspection[]>{
-        try{
-            const remoteInspections = await getRemoteInspections()
-            const remoteIds = new Set(
-                remoteInspections.map((remote) => remote.id)
+        const remoteInspections = await getRemoteInspections()
+        const remoteIds = new Set(
+            remoteInspections.map((remote) => remote.id)
+        )
+
+        const localInspections = await db
+            .select()
+            .from(inspections)
+
+        for(const remote of remoteInspections){
+            let local = localInspections.find(
+                (item) => item.remoteId === remote.id                
             )
-            const localInspections = await db
-                .select()
-                .from(inspections)
 
-            for(const remote of remoteInspections){
-                let local = localInspections.find(
-                    (item) => item.remoteId === remote.id
+            if(!local){
+                local = localInspections.find((item) =>
+                    item.remoteId == null
+                    && item.title === remote.title
+                    && item.description === remote.description
+                    && item.latitude === remote.latitude
+                    && item.longitude === remote.longitude
                 )
-
-                if(!local){
-                    local = localInspections.find((item) =>(
-                        item.remoteId == null
-                        && item.title === remote.title
-                        && item.description === remote.description
-                        && item.latitude === remote.latitude
-                        && item.longitude === remote.longitude
-                    ))
-                }
-
-                if(local){
-                    await db
-                        .update(inspections)
-                        .set({
-                            remoteId: remote.id,
-                            title: remote.title,
-                            description: remote.description,
-                            status: 'synced',
-                            latitude: remote.latitude,
-                            longitude: remote.longitude,
-                            photoUri: remote.photoUrl,
-                            signatureUri: remote.signatureUrl,
-                            updatedAt: new Date()
-                        })
-                        .where(eq(inspections.id, local.id))
-
-                        continue
-                }
-
-                const now = new Date()
-
-                await db.insert(inspections).values({
-                    id: `insp_${remote.id}`,
-                    remoteId: remote.id,
-                    title: remote.title,
-                    description: remote.description,
-                    status: 'synced',
-                    latitude: remote.latitude,
-                    longitude: remote.longitude,
-                    photoUri: remote.photoUrl,
-                    signatureUri: remote.signatureUrl,
-                    createdAt: now,
-                    updatedAt: now,
-                })
-
-                const syncedLocally = await db
-                    .select()
-                    .from(inspections)
-
-                for(const local of syncedLocally){
-                    if(
-                        local.remoteId
-                        && local.status === 'synced'
-                        && !remoteIds.has(local.remoteId)
-                    ){
-                        await db
-                            .delete(inspections)
-                            .where(eq(inspections.id, local.id))
-                    }
-                }
-                
             }
 
-            return this.getAll()
-        }catch(e){
-            return this.getAll()
+            if(local){
+                await db
+                    .update(inspections)
+                    .set({
+                        remoteId: remote.id,
+                        title: remote.title,
+                        description: remote.description,
+                        status: 'synced',
+                        latitude: remote.latitude,
+                        longitude: remote.longitude,
+                        photoUri: local.photoUri ?? getApiAssetUrl(remote.photoUrl),
+                        signatureUri: remote.signatureUrl,
+                        updatedAt: new Date()
+                    })
+                    .where(eq(inspections.id, local.id))
+
+                continue
+            }
+
+            await db.insert(inspections).values({
+                id: `insp_${remote.id}`,
+                remoteId: remote.id,
+                title: remote.title,
+                description: remote.description,
+                status: 'synced',
+                latitude: remote.latitude,
+                longitude: remote.longitude,
+                photoUri: getApiAssetUrl(remote.photoUrl),
+                signatureUri: remote.signatureUrl,
+                createdAt: new Date(),
+                updatedAt: new Date()
+            })
+        }     
+        
+        const currentLocalInspections = await db
+            .select()
+            .from(inspections)
+
+        for(const local of currentLocalInspections){
+            if(
+                local.remoteId
+                && local.status === 'synced'
+                && !remoteIds.has(local.remoteId)
+            ){
+                await db
+                    .delete(inspections)
+                    .where(eq(inspections.id, local.id))
+            }
         }
+
+        return this.getAll()
     }
 }
 

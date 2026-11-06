@@ -9,7 +9,17 @@ export function useInspections(){
     const queryClient = useQueryClient()
     const inspectionsQuery = useQuery({
         queryKey: INSPECTIONS_QUERY_KEY,
-        queryFn: () => inspectionService.syncFromRemote()
+        queryFn: async() =>{
+            try{
+                return await inspectionService.syncFromRemote()
+            }catch(error){
+                console.warn(
+                    'Remote synchronization failed; using local cache',
+                    error,
+                )
+                return inspectionService.getAll()
+            }
+        }
     })
 
     const createMutation = useMutation({

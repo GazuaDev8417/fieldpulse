@@ -1,7 +1,9 @@
 import { Button } from '@/src/components/ui/Button';
 import { Card } from '@/src/components/ui/Card';
+import { getAccessToken } from '@/src/features/auth/authStorage';
 import { useInspectionDetail } from '@/src/features/inspections/hooks/useInspectionDetail';
 import { useInspections } from '@/src/features/inspections/hooks/useInspections';
+import { Directory, File, Paths } from 'expo-file-system';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import {
   AlertCircle,
@@ -13,6 +15,7 @@ import {
   MapPin,
   Trash2,
 } from 'lucide-react-native';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -33,7 +36,80 @@ export default function InspectionDetailScreen() {
   const router = useRouter();
   const { inspection, isLoading } = useInspectionDetail(id as string);
   const { deleteInspection } = useInspections();
+  const [accessToken, setAccessToken] = useState<string | null>(null)
+  const [photoLocalUri, setPhotoLocalUri] = useState<string | null>(null)
+  const [photoLoading, setPhotoLoading] = useState<boolean>(false)
+  const [photoError, setPhotoError] = useState<boolean>(false)
 
+
+  
+
+  useEffect(()=>{
+    let cancelled = false
+
+    async function loadPhoto(){
+      if(!inspection?.photoUri || !accessToken) return
+
+      if(inspection.photoUri.startsWith('file://')){
+        setPhotoLocalUri(inspection.photoUri)
+        setPhotoLoading(false)
+        setPhotoError(false)
+        return
+      }
+
+      setPhotoLoading(true)
+      setPhotoError(false)
+
+      try{
+        const directory = new Directory(Paths.cache, 'inpection-photos')
+
+        if(!directory.exists){
+          directory.create()
+        }
+
+        const filename = `${inspection.remoteId ?? inspection.id}.jpg`
+        const file = new File(directory, filename)
+
+        if(file.exists){
+          file.delete()
+        }
+
+        const downloaded = await File.downloadFileAsync(
+          inspection.photoUri,
+          file,
+          {
+            headers: { Authorization: `Bearer ${accessToken}`}
+          }
+        )
+
+        if(!cancelled){
+          setPhotoLocalUri(downloaded.uri)
+        }
+      }catch(error){
+        console.error('Remote photo download failed', error)
+
+        if(!cancelled){
+          setPhotoError(true)
+          setPhotoLocalUri(null)
+        }
+      }finally{
+        if(!cancelled) setPhotoLoading(false)
+      }      
+    }
+
+    loadPhoto()
+
+    getAccessToken().then(setAccessToken)
+    
+    return () =>{
+      cancelled = true
+    }
+  }, [
+    inspection?.photoUri,
+    inspection?.remoteId,
+    inspection?.id,
+    accessToken
+  ])
   
   
   const handleDelete = () => {
@@ -178,11 +254,21 @@ export default function InspectionDetailScreen() {
         {inspection.photoUri ? (
           <Card style={styles.sectionCard}>
             <Text style={styles.sectionTitle}>Photo Evidence</Text>
-            <Image
-              source={{ uri: inspection.photoUri }}
-              style={styles.evidenceImage}
-              resizeMode="cover"
+            {photoLoading && (
+              <ActivityIndicator size='small' color='#2563EB'/>
+            )}
+            
+            {photoLocalUri && !photoError && (
+              <Image
+                source={{ uri: photoLocalUri }}
+                style={styles.evidenceImage}
+                resizeMode="cover"
             />
+            )}
+
+            {photoError && (
+              <Text>Photo could not be downloaded</Text>
+            )}
           </Card>
         ) : null}
 

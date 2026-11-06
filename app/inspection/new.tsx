@@ -114,26 +114,40 @@ export default function NewInspectionScreen() {
           longitude: location?.longitude ?? null
         })
 
+        // if(photoUri){
+        //   const formData = new FormData()
+
+        //   formData.append('photo', {
+        //     uri: photoUri,
+        //     name: 'inspection-photo.jpg',
+        //     type: 'image/jpeg'
+        //   } as unknown as Blob)
+
+        //   await apiClient.upload(
+        //     `/inspections/${remoteInspection.id}/photo`,
+        //     formData
+        //   )
+        // }
+
+        await updateInspection({
+          id: newId,
+          data: {
+            remoteId: remoteInspection.id
+          }
+        })
+
         if(photoUri){
-          const formData = new FormData()
-
-          formData.append('photo', {
-            uri: photoUri,
-            name: 'inspection-photo.jpg',
-            type: 'image/jpeg'
-          } as unknown as Blob)
-
-          await apiClient.upload(
+          await apiClient.uploadfile(
             `/inspections/${remoteInspection.id}/photo`,
-            formData
+            photoUri,
+            'photo'
           )
         }
 
         await updateInspection({
           id: newId,
           data: {
-            status: 'synced',
-            remoteId: remoteInspection.id
+            status: "synced"
           }
         })
       }catch(e){
