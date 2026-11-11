@@ -1,4 +1,5 @@
 import { Inspection, NewInspection } from '@/src/database/schema'
+import { getAccessToken } from '@/src/features/auth/authStorage'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { inspectionService } from '../services/inspectionService'
 
@@ -10,6 +11,12 @@ export function useInspections(){
     const inspectionsQuery = useQuery({
         queryKey: INSPECTIONS_QUERY_KEY,
         queryFn: async() =>{
+            const accessToken = await getAccessToken()
+
+            if(!accessToken){
+                return inspectionService.getAll()
+            }
+
             try{
                 return await inspectionService.syncFromRemote()
             }catch(error){

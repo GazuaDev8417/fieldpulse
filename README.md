@@ -1,6 +1,6 @@
 # FieldPulse
 
-FieldPulse is an offline-first mobile application for creating and managing field inspections. It uses local SQLite storage for offline access and synchronizes inspection data, photos, authentication, and deletion operations with the FieldPulse backend.
+FieldPulse is a local-first mobile application for creating and managing field inspections. It stores records in SQLite and connects to the FieldPulse backend for authentication, inspection synchronization, and photo sharing between devices.
 
 ## Features
 
@@ -8,12 +8,12 @@ FieldPulse is an offline-first mobile application for creating and managing fiel
 - Organization isolation between users and organizations
 - Create inspections with title, description, GPS coordinates, and photo evidence
 - Capture photos through Expo Camera and location through Expo Location
-- Local-first SQLite persistence with Drizzle ORM
-- Synchronize records from PostgreSQL into the device
+- Local SQLite persistence with Drizzle ORM
+- Synchronize the signed-in organization's inspections from the backend
 - Upload inspection photos with multipart requests
 - Download protected remote photos and cache them locally
-- Remove local and remote inspections across synchronized devices
-- Offline fallback to locally stored inspections when synchronization is unavailable
+- Delete remote inspections so they disappear on other synchronized devices
+- Show locally cached inspections when no session or backend connection is available
 
 ## Tech Stack
 
@@ -81,14 +81,16 @@ When an access token expires, the API client automatically uses the refresh toke
 
 Every inspection and protected photo request belongs to the authenticated user's organization. Records from another organization are not returned or accessible to the current user.
 
-## Offline-first Synchronization
+## Local Storage and Synchronization
 
 - Inspection records are stored in SQLite.
 - `remote_id` associates a local record with its PostgreSQL record.
 - Remote synchronization downloads the current organization's inspections.
 - Local records removed remotely are also removed from the local SQLite cache.
 - Synchronization failures fall back to the local SQLite cache.
-- Local pending operations remain recorded in `sync_queue`.
+- The `sync_queue` table records local create, update, and delete operations.
+
+Creating an inspection first saves it locally, then immediately attempts to create it on the backend and upload its photo. If that remote operation fails, the local record remains available with a pending status. The current app does not automatically replay pending `sync_queue` entries when connectivity returns; retrying failed pending operations is not yet implemented. Local updates are also not currently sent to the backend.
 
 Photo handling differs by source:
 
@@ -127,8 +129,7 @@ src/
 ## Validation
 
 ```bash
-npx expo lint
 npx tsc --noEmit
 ```
 
-Run both commands before submitting changes. Validate camera, location, remote photo download, token refresh, and organization isolation on real devices.
+The project currently has no configured ESLint script or frontend automated test suite. Validate camera, location, remote photo download, token refresh, and organization isolation on real devices.

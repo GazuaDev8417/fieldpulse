@@ -102,6 +102,14 @@ export async function apiRequest<T>(
         return retryData as T        
     }
 
+    if(!response.ok){
+        throw new Error(
+            typeof data?.error === 'string'
+                ? data.error
+                : `Request failed with status ${response.status}`
+        )
+    }
+
     return data as T
 }
 
