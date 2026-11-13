@@ -1,6 +1,7 @@
 import { authService } from '@/src/features/auth/authService'
 import { clearTokens, getAccessToken } from '@/src/features/auth/authStorage'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import * as Linking from 'expo-linking'
 import { router, Stack } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ActivityIndicator, View } from 'react-native'
@@ -19,6 +20,10 @@ export default function RootLayout() {
     async function prepare() {
       try{
         await initDatabase()
+
+        const initialUrl = await Linking.getInitialURL()
+
+        if(initialUrl?.includes('/invitation/accept')) return
 
         const accessToken = await getAccessToken()
 

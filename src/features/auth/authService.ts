@@ -21,6 +21,17 @@ type AuthResponse = {
   refreshToken: string
 }
 
+export type InvitationRole = 'ADMIN' | 'INSPECTOR' | 'VIEWER'
+
+type CreateInvitationResonse = {
+  invitation: {
+    id: string
+    email: string
+    role: InvitationRole
+    expiresAt: string
+  }
+}
+
 export type UserProfile = {
   id: string
   name: string
@@ -65,6 +76,52 @@ export const authService = {
         password,
         organizationName: organizationName.trim(),
       },
+    )
+
+    await saveAccessToken(result.accessToken)
+    await saveRefreshToken(result.refreshToken)
+
+    return result
+  },
+
+  async createInvitation(email:string, role:InvitationRole){
+    const result = await apiClient.post<CreateInvitationResonse>(
+      '/organizations/invitations',
+      {
+        email: email.trim().toLowerCase(),
+        role
+      },
+      true
+    )
+
+    return result.invitation
+  },
+
+  async acceptInvitation(token:string){
+    const result = await apiClient.post<AuthResponse>(
+      '/organizations/invitations/accept',
+      { token },
+      true
+    )
+
+    await saveAccessToken(result.accessToken)
+    await saveRefreshToken(result.refreshToken)
+
+    return result
+  },
+
+  async registerFromInvitation(
+    token: string,
+    name: string,
+    password: string
+  ){
+    const result = await apiClient.post<AuthResponse>(
+      '/auth/invitations/register',
+      {
+        token,
+        name: name.trim(),
+        password
+      }
     )
 
     await saveAccessToken(result.accessToken)

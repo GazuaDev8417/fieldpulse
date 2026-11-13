@@ -1,11 +1,12 @@
 # FieldPulse
 
-FieldPulse is a local-first mobile application for creating and managing field inspections. It stores records in SQLite and connects to the FieldPulse backend for authentication, inspection synchronization, and photo sharing between devices.
+FieldPulse is a mobile application for creating and managing field inspections. It stores inspection records in SQLite and connects to the FieldPulse backend for authentication, organization-scoped inspection data, and photo sharing between devices.
 
 ## Features
 
 - Account registration, login, logout, and automatic access-token refresh
 - Organization isolation between users and organizations
+- Organization invitations for adding members to an existing organization
 - Create inspections with title, description, GPS coordinates, and photo evidence
 - Capture photos through Expo Camera and location through Expo Location
 - Local SQLite persistence with Drizzle ORM
@@ -14,6 +15,8 @@ FieldPulse is a local-first mobile application for creating and managing field i
 - Download protected remote photos and cache them locally
 - Delete remote inspections so they disappear on other synchronized devices
 - Show locally cached inspections when no session or backend connection is available
+
+Invitation links use the `fieldpulse://` URL scheme and are intended to open the installed mobile app. The acceptance screen supports signing in with an existing invited account or creating a new account with a name and password.
 
 ## Tech Stack
 
@@ -47,7 +50,7 @@ Configure the backend URL in `src/config/api.ts`:
 export const API_URL = "http://YOUR_SERVER_IP:3000/api/v1"
 ```
 
-The app uses clear-text HTTP for Android local-network development. For production, use HTTPS.
+The current development configuration uses clear-text HTTP for a backend on the local network. The resolved Expo configuration enables Android clear-text traffic, but this setting must be included in the installed APK. An Android APK has recently rejected requests to the development API with a clear-text network policy error; this native-build issue is still under investigation. Rebuild and reinstall the APK after native configuration changes. For production, use HTTPS instead of enabling clear-text traffic.
 
 When the backend is running with Docker Compose, the mobile app still uses port `3000` and `src/config/api.ts` only needs the Docker host's LAN IP:
 
@@ -72,6 +75,8 @@ npx expo start --web
 ```
 
 Physical devices must be able to reach the backend host. The backend URL must use the host computer's LAN address, not `localhost`, for devices that are not running on the same machine.
+
+The mobile app does not bundle the API or PostgreSQL database. For local testing, the backend and database must be running and reachable at the configured API URL. A custom-scheme invitation link can open the installed app, but it does not provide a web page when opened on a desktop browser.
 
 ## Authentication and Organization Isolation
 
@@ -104,6 +109,7 @@ Photo handling differs by source:
 app/
   (tabs)/             Inspection list and profile
   inspection/         New inspection and inspection details
+  invitation/         Organization invitation acceptance
   login.tsx           Login screen
   register.tsx        Registration and organization creation
 
@@ -125,6 +131,7 @@ src/
 - `src/features/inspections/services/inspectionService.ts`: local cache and remote synchronization
 - `app/inspection/new.tsx`: photo capture and inspection submission
 - `app/inspection/[id].tsx`: remote/local photo display and deletion
+- `app/invitation/accept.tsx`: accept an invitation with an existing account or begin invited registration
 
 ## Validation
 
@@ -132,4 +139,12 @@ src/
 npx tsc --noEmit
 ```
 
-The project currently has no configured ESLint script or frontend automated test suite. Validate camera, location, remote photo download, token refresh, and organization isolation on real devices.
+The project has no frontend automated test suite. The `lint` script requires ESLint to be installed; if it is unavailable in the environment, `npx expo lint` will fail before linting. Validate camera, location, remote photo download, token refresh, invitation deep links, and organization isolation on real devices.
+
+## Current Limitations
+
+- The Android APK's clear-text HTTP failure against the local development API is still being investigated. The resolved Expo config enables clear-text traffic, but the installed APK's native manifest has not yet been independently verified.
+- The invitation deep link has opened the app when launched directly with Android Debug Bridge. Opening it from an email client and completing the API request still need end-to-end validation on the rebuilt APK.
+- The profile invitation UI is currently shown only to `OWNER` and offers `ADMIN`, `INSPECTOR`, and `VIEWER`; the backend also enforces that only `OWNER` can create invitations.
+- The backend records organization roles, but role-based permissions for inspection operations, member listing, and member-role changes are not implemented yet. Do not treat `VIEWER` as read-only until those API permissions exist.
+- The project uses a LAN HTTP API URL for development. It is not suitable for deployment or use from outside the reachable local network; use a public HTTPS API for production.

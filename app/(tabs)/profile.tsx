@@ -1,9 +1,12 @@
-import { authService, UserProfile } from "@/src/features/auth/authService"
+import { Button } from "@/src/components/ui/Button"
+import { Input } from "@/src/components/ui/Input"
+import { authService, InvitationRole, UserProfile } from "@/src/features/auth/authService"
 import { router } from "expo-router"
 import { useEffect, useState } from "react"
 import {
     ActivityIndicator,
     Alert,
+    ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -14,7 +17,10 @@ import {
 
 export default function ProfileScreen(){
     const [profile, setProfile] = useState<UserProfile | null>(null)
-    const [isLoading, setIsLoading] = useState(true)
+    const [isLoading, setIsLoading] = useState<boolean>(true)
+    const [invitationEmail, setInvitationEmail] = useState<string>("")
+    const [isInviting, setIsInviting] = useState<boolean>(false)
+
     
     
     useEffect(()=>{
@@ -36,6 +42,37 @@ export default function ProfileScreen(){
 
         loadProfile()
     },[])
+
+
+
+    async function handleInvite(role:InvitationRole){
+        if(!invitationEmail.trim()){
+            Alert.alert("Missing email", "Enter the email address to invite.")
+            return
+        }
+
+        setIsInviting(true)
+
+        try{
+            const invitation = await authService.createInvitation(
+                invitationEmail,
+                role
+            )
+
+            Alert.alert(
+                'Invitation sent',
+                `An invitation was sent to ${invitation.email}`
+            )
+            setInvitationEmail('')
+        }catch(error){
+            Alert.alert(
+                'Could not send invitation',
+                error instanceof Error ? error.message : 'Please try again.'
+            )
+        }finally{
+            setIsInviting(false)
+        }
+    }
 
 
     async function handleLogout(){
@@ -66,7 +103,14 @@ export default function ProfileScreen(){
 
 
     return(
-        <View style={styles.container}>
+        <ScrollView
+            style={styles.container}
+            contentContainerStyle={styles.content}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            automaticallyAdjustKeyboardInsets
+            showsVerticalScrollIndicator={false}
+        >
             <View style={styles.header}>
                 <Text style={styles.title}>Profile</Text>
             </View>
@@ -93,6 +137,42 @@ export default function ProfileScreen(){
                 </View>
             </View>
 
+            {profile?.role === 'OWNER' && (
+                <View style={styles.card}>
+                    <Text style={styles.title}>Invite a member</Text>
+
+                    <Input
+                        label='Email'
+                        value={invitationEmail}
+                        onChangeText={setInvitationEmail}
+                        autoCapitalize="none"
+                        keyboardType="email-address"
+                        autoComplete="email"
+                    />
+
+                    <Button
+                        title="Invite as admin"
+                        onPress={() => handleInvite('ADMIN')}
+                        isLoading={isInviting}
+                    />
+
+                    <Button
+                        title="Invite as inspector"
+                        onPress={() => handleInvite('INSPECTOR')}
+                        isLoading={isInviting}
+                        style={{ marginTop: 8}}
+                    />
+
+                    <Button
+                        title="Invite as viewer"
+                        variant="outline"
+                        onPress={() => handleInvite('VIEWER')}
+                        disabled={isInviting}
+                        style={{ marginTop: 8}}
+                    />
+                </View>
+            )}
+
             <TouchableOpacity
                 style={styles.logoutButton}
                 onPress={handleLogout}
@@ -100,7 +180,7 @@ export default function ProfileScreen(){
             >
                 <Text style={styles.logoutText}>Logout</Text>
             </TouchableOpacity>
-            </View>
+        </ScrollView>
     )
 }
 
@@ -111,6 +191,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#F8FAFC",
+  },
+  content: {
+    paddingBottom: 24,
   },
   center: {
     flex: 1,
